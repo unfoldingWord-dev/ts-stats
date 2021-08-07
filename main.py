@@ -92,7 +92,7 @@ def display_stats():
             outof = f" of {verses[book.upper()]['chapters']}"
           elif book.upper() == 'OBS':
             outof = " of 50"
-          print(f"              Chapters: {len(stats[lang][resource][book][name].keys())}{outof}")
+          print(f"              Chapters: {num_done}{outof}")
           print(f"                {', '.join(sorted(stats[lang][resource][book][name]))}")
 
 if __name__ == '__main__':
