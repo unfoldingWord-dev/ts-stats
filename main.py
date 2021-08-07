@@ -18,6 +18,7 @@ from usfm_verses import verses
 from contextlib import closing
 
 owner = None
+SHOW_CHUNKS = False
 stats = {}
 
 def get_json(url):
@@ -88,11 +89,11 @@ def display_stats():
             num_done -= 1
           outof = ""
           if book.upper() in verses:
-            outof = f"/{verses[book.upper()]}"
+            outof = f" of {verses[book.upper()]['chapters']}"
+          elif book.upper() == 'OBS':
+            outof = " of 50"
           print(f"              Chapters: {len(stats[lang][resource][book][name].keys())}{outof}")
-          for chapter in sorted(stats[lang][resource][book][name]):
-            print(f"                {chapter}:")
-            print(f"                  Chunks: {', '.join(stats[lang][resource][book][name][chapter])}")
+          print(f"                {', '.join(sorted(stats[lang][resource][book][name]))}")
 
 if __name__ == '__main__':
     if len(sys.argv) <= 1:
