@@ -86,7 +86,10 @@ def display_stats():
           num_done = len(done)
           if 'front' in done:
             num_done -= 1
-          print(f"              Chapters: {len(stats[lang][resource][book][name].keys())}/{verses[book.upper()]['chapters']}")
+          outof = ""
+          if book.upper() in verses:
+            outof = f"/{verses[book.upper()]}"
+          print(f"              Chapters: {len(stats[lang][resource][book][name].keys())}{outof}")
           for chapter in sorted(stats[lang][resource][book][name]):
             print(f"                {chapter}:")
             print(f"                  Chunks: {', '.join(stats[lang][resource][book][name][chapter])}")
