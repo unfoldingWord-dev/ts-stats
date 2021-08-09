@@ -17,8 +17,7 @@ from usfm_verses import verses
 from contextlib import closing
 
 owner = None
-SHOW_CHUNKS = False
-stats = {}
+stats = {'langs': {'count': 0, 'items': {}}}
 
 
 def get_json(url):
@@ -37,12 +36,13 @@ def get_stats():
     if not response or not len(response['data']):
         print("No repositories found. Exiting.")
         exit(1)
+    repo_total = len(response['data'])
     for idx, repo in enumerate(response['data']):
         # if idx > 2:
         #   break
-        name = repo['name']
-        print(f"Processing {name}...")
-        manifest_url = f"https://git.door43.org/{owner}/{repo['name']}/raw/branch/master/manifest.json"
+        project = repo['name']
+        print(f"Processing {project} ({idx+1}/{repo_total})...")
+        manifest_url = f"https://git.door43.org/{owner}/{project}/raw/branch/master/manifest.json"
         manifest = get_json(manifest_url)
         lang = None
         resource = None
@@ -53,52 +53,36 @@ def get_stats():
             book = manifest['project']['id']
             resource = manifest['resource']['id']
         else:
-            parts = name.split('_')
+            parts = project.split('_')
             if len(parts) == 4:
                 lang = parts[0]
                 book = parts[1]
                 resource = parts[3]
-        if lang not in stats:
-            stats[lang] = {}
-        if resource not in stats[lang]:
-            stats[lang][resource] = {}
-        if book not in stats[lang][resource]:
-            stats[lang][resource][book] = {}
-        if name not in stats[lang][resource][book]:
-            stats[lang][resource][book][name] = {}
-        for chunk in manifest['finished_chunks']:
-            chapter, verse = chunk.split('-')[0:2]
-            if chapter not in stats[lang][resource][book][name]:
-                stats[lang][resource][book][name][chapter] = []
-            stats[lang][resource][book][name][chapter].append(verse)
-
-
-def display_stats():
-    print(f"\nStats for {owner}:\n")
-    print(f"Languages: {len(stats.keys())}")
-    for lang in sorted(stats.keys()):
-        print(f"  {lang}:")
-        print(f"    Resources: {len(stats[lang].keys())}")
-        for resource in sorted(stats[lang]):
-            print(f"      {resource}:")
-            print(f"        Books: {len(stats[lang][resource].keys())}")
-            for book in sorted(stats[lang][resource]):
-                print(f"          {book}:")
-                for name in sorted(stats[lang][resource][book]):
-                    print(f"            {name}")
-                    done = stats[lang][resource][book][name].keys()
-                    num_done = len(done)
-                    if 'front' in done:
-                        num_done -= 1
-                    outof = ""
-                    if book.upper() in verses:
-                        outof = f" of {verses[book.upper()]['chapters']}"
-                    elif book.upper() == 'OBS':
-                        outof = " of 50"
-                    print(f"              Chapters: {num_done}{outof}")
-                    print(
-                        f"                {', '.join(sorted(stats[lang][resource][book][name]))}"
-                    )
+        if lang not in stats['langs']['items']:
+            stats['langs']['items'][lang] = {'resources': {'count': 0, 'items': {}}}
+            stats['langs']['count'] += 1
+        if resource not in stats['langs']['items'][lang]['resources']['items']:
+            stats['langs']['items'][lang]['resources']['items'][resource] = {'books': {'count': 0, 'items': {}}}
+            stats['langs']['items'][lang]['resources']['count'] += 1
+        if book not in stats['langs']['items'][lang]['resources']['items'][resource]['books']['items']:
+            stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book] = {'projects': {'count': 0, 'items': {}}}
+            stats['langs']['items'][lang]['resources']['items'][resource]['books']['count'] += 1
+        if project not in stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book]['projects']['items']:
+            if book.upper() in verses:
+                total = verses[book.upper()]['chapters']
+            elif book.upper() == 'OBS':
+                total = 50
+            stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book]['projects']['items'][project] = {'chapters': {'count': 0, 'total': total, 'items': {}}}
+            stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book]['projects']['count'] += 1
+        if 'finished_chunks' in manifest and manifest['finished_chunks']:
+            for chunk in manifest['finished_chunks']:
+                chapter, verse = chunk.split('-')[0:2]
+                if chapter not in stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book]['projects']['items'][project]['chapters']['items']:
+                    stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book]['projects']['items'][project]['chapters']['items'][chapter] = {'chunks': {'count': 0, 'items': []}}
+                    if chapter != 'front':
+                        stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book]['projects']['items'][project]['chapters']['count'] += 1
+                stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book]['projects']['items'][project]['chapters']['items'][chapter]['chunks']['items'].append(verse)
+                stats['langs']['items'][lang]['resources']['items'][resource]['books']['items'][book]['projects']['items'][project]['chapters']['items'][chapter]['chunks']['count'] += 1
 
 
 if __name__ == '__main__':
@@ -109,4 +93,4 @@ if __name__ == '__main__':
     else:
         owner = sys.argv[1]
     get_stats()
-    display_stats()
+    print(json.dumps(stats, indent=2, sort_keys=True))
